@@ -1,0 +1,18 @@
+/// <reference path="../pb_data/types.d.ts" />
+migrate((db) => {
+  const dao = new Dao(db)
+  const collection = dao.findCollectionByNameOrId("dqxb7fwn3jr1twe")
+
+  collection.listRule = "owner = @request.auth.id"
+  collection.viewRule = ""
+
+  return dao.saveCollection(collection)
+}, (db) => {
+  const dao = new Dao(db)
+  const collection = dao.findCollectionByNameOrId("dqxb7fwn3jr1twe")
+
+  collection.listRule = "@request.headers.x_token = view_token || @request.headers.x_token = edit_token || owner = @request.auth.id"
+  collection.viewRule = "@request.headers.x_token = view_token || @request.headers.x_token = edit_token || owner = @request.auth.id"
+
+  return dao.saveCollection(collection)
+})
