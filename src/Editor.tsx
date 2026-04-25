@@ -125,7 +125,8 @@ export default function Editor() {
 
     const connect = () => {
       // Use the base URL, proxy will handle the connection logic
-      socket = new WebSocket('ws://127.0.0.1:8081/status');
+      const lspWsUrl = import.meta.env.VITE_LSP_WS_URL || 'ws://127.0.0.1:8081';
+      socket = new WebSocket(`${lspWsUrl}/status`);
       
       socket.onmessage = (event) => {
         try {
@@ -306,8 +307,9 @@ export default function Editor() {
 
         // Initialize WebRTC for ephemeral cursor awareness
         // WebRTC room should be unguessable, use the doc ID
+        const signalingUrl = import.meta.env.VITE_WEBRTC_SIGNALING_URL || 'ws://localhost:4444';
         webrtcProvider = new WebrtcProvider(`doksy-room-${docRecord.id}`, ydoc, { 
-          signaling: ['ws://localhost:4444'],
+          signaling: [signalingUrl],
           peerOpts: {
             config: {
               iceServers: [
@@ -409,8 +411,9 @@ export default function Editor() {
     ext.push(basicSetup);
     
     if (docId) {
+      const lspWsUrl = import.meta.env.VITE_LSP_WS_URL || 'ws://127.0.0.1:8081';
       ext.push(languageServer({
-        serverUri: 'ws://127.0.0.1:8081',
+        serverUri: lspWsUrl,
         rootUri: 'file:///',
         documentUri: `file:///${docId}.typ`,
         languageId: 'typst',

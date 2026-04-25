@@ -1,6 +1,6 @@
 import PocketBase from 'pocketbase';
 
-export const pb = new PocketBase('http://127.0.0.1:8090');
+export const pb = new PocketBase(import.meta.env.VITE_POCKETBASE_URL || 'http://127.0.0.1:8090');
 
 const ADVERBS = ['Swiftly', 'Quietly', 'Boldly', 'Calmly', 'Eagerly', 'Gladly', 'Bravely', 'Brightly', 'Cleverly', 'Fiercely'];
 const ADJECTIVES = ['Red', 'Blue', 'Green', 'Happy', 'Sad', 'Angry', 'Fast', 'Slow', 'Tall', 'Short', 'Tiny', 'Giant'];
