@@ -23,16 +23,29 @@ async function bootstrap() {
   }
 
   // 2. Authenticate
+  console.log("Authenticating...");
   const authRes = await fetch(`${PB_URL}/api/admins/auth-with-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ identity: ADMIN_EMAIL, password: ADMIN_PASS })
   });
-  const { token } = await authRes.json();
+  
+  if (!authRes.ok) {
+    console.error("Authentication failed:", await authRes.text());
+    return;
+  }
+  
+  const authData = await authRes.json();
+  const token = authData.token;
+  if (!token) {
+    console.error("No token received in auth response");
+    return;
+  }
+  console.log("Authenticated successfully.");
 
   // 3. Update Users Collection (Add color)
   console.log("Updating users collection...");
-  const usersColRes = await fetch(`${PB_URL}/api/collections/users`, { headers: { 'Authorization': token } });
+  const usersColRes = await fetch(`${PB_URL}/api/collections/users`, { headers: { 'Authorization': `Admin ${token}` } });
   const usersCol = await usersColRes.json();
   
   // PocketBase v0.23+ uses .fields instead of .schema
@@ -42,7 +55,7 @@ async function bootstrap() {
     fields.push({ name: 'color', type: 'text', required: false });
     const updateRes = await fetch(`${PB_URL}/api/collections/users`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'Authorization': token },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Admin ${token}` },
       body: JSON.stringify({ [usersCol.fields ? 'fields' : 'schema']: fields })
     });
     if (!updateRes.ok) {
@@ -70,7 +83,7 @@ async function bootstrap() {
 
   const docRes = await fetch(`${PB_URL}/api/collections`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': token },
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Admin ${token}` },
     body: JSON.stringify(docBody)
   });
   
@@ -97,7 +110,7 @@ async function bootstrap() {
   };
   await fetch(`${PB_URL}/api/collections`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': token },
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Admin ${token}` },
     body: JSON.stringify(updatesBody)
   });
 
@@ -119,7 +132,7 @@ async function bootstrap() {
   };
   await fetch(`${PB_URL}/api/collections`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': token },
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Admin ${token}` },
     body: JSON.stringify(filesBody)
   });
 
@@ -141,7 +154,7 @@ async function bootstrap() {
   };
   await fetch(`${PB_URL}/api/collections`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': token },
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Admin ${token}` },
     body: JSON.stringify(aliasesBody)
   });
 
