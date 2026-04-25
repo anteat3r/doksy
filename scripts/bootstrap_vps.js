@@ -1,5 +1,5 @@
 
-const PB_URL = process.env.PB_URL || 'http://127.0.0.1:8090';
+const PB_URL = process.env.PB_URL || 'http://127.0.0.1:8070';
 const ADMIN_EMAIL = 'admin@admin.com';
 const ADMIN_PASS = 'password123456';
 
