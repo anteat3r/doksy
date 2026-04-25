@@ -6,9 +6,10 @@ const ADMIN_PASS = 'password123456';
 async function bootstrap() {
   console.log(`Bootstrapping PocketBase at ${PB_URL}...`);
 
-  // 1. Create Admin
+  // 1. Create Admin/Superuser
+  let isNewVersion = false;
   try {
-    await fetch(`${PB_URL}/api/admins`, {
+    const res = await fetch(`${PB_URL}/api/admins`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -17,26 +18,66 @@ async function bootstrap() {
         passwordConfirm: ADMIN_PASS
       })
     });
-    console.log("Admin account created.");
-  } catch(e) {
-    console.log("Admin account might already exist.");
+    if (res.status === 404) {
+      isNewVersion = true;
+      console.log("Detected PocketBase v0.23+ (Superusers mode)");
+    } else if (res.ok) {
+      console.log("Admin account created (Legacy mode).");
+    }
+  } catch(e) {}
+
+  if (isNewVersion) {
+    try {
+      await fetch(`${PB_URL}/api/collections/_superusers/records`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: ADMIN_EMAIL,
+          password: ADMIN_PASS,
+          passwordConfirm: ADMIN_PASS
+        })
+      });
+      console.log("Superuser account created.");
+    } catch (e) {}
   }
 
   // 2. Authenticate
   console.log("Authenticating...");
-  const authRes = await fetch(`${PB_URL}/api/admins/auth-with-password`, {
+  const authUrl = isNewVersion 
+    ? `${PB_URL}/api/collections/_superusers/auth-with-password`
+    : `${PB_URL}/api/admins/auth-with-password`;
+    
+  const authRes = await fetch(authUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ identity: ADMIN_EMAIL, password: ADMIN_PASS })
   });
   
   if (!authRes.ok) {
-    console.error("Authentication failed:", await authRes.text());
-    return;
+    // If we guessed wrong version, try the other one as fallback
+    const fallbackUrl = isNewVersion
+      ? `${PB_URL}/api/admins/auth-with-password`
+      : `${PB_URL}/api/collections/_superusers/auth-with-password`;
+      
+    console.log("Retrying authentication with fallback endpoint...");
+    const fallbackRes = await fetch(fallbackUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identity: ADMIN_EMAIL, password: ADMIN_PASS })
+    });
+
+    if (!fallbackRes.ok) {
+      console.error("Authentication failed on both endpoints:", await fallbackRes.text());
+      return;
+    }
+    
+    const authData = await fallbackRes.json();
+    var token = authData.token;
+  } else {
+    const authData = await authRes.json();
+    var token = authData.token;
   }
   
-  const authData = await authRes.json();
-  const token = authData.token;
   if (!token) {
     console.error("No token received in auth response");
     return;
